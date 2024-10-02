@@ -191,8 +191,6 @@ def sigmoid_prime(z):
     sig = sigmoid(z)
     return sig*(1-sig)
 
-
-
 df = pd.read_csv('D:/MLUniversity/work1/Dataset/BrowserLogos/output.csv')
 
 training_data = []

@@ -91,8 +91,11 @@ class Network(object):
             print(f'z = {z}\n')
             zs.append(z)
             print(f'zs = {zs}\n')
-            activation = sigmoid(z)
-            print(f'after sigmoid(z) new activation = {activation}\n')
+            # activation = sigmoid(z)
+            relu = ReLu(z)
+            activation = relu
+            print(f'RELU = {relu}\n')
+            print(f'after relu(z) new activation = {activation}\n')
             activations.append(activation)
             print(f'activations = {activations}\n')
             counter+=1
@@ -115,7 +118,7 @@ class Network(object):
         # обратный проход
         print('--------------------\n')
         print(f'y = {y}')
-        res_entropy =  self.binary_cross_entropy(y, activations[-1])
+        res_entropy = self.binary_cross_entropy(y, activations[-1])
         print(f'res_entropy = {res_entropy}\n')
 
 
@@ -126,17 +129,19 @@ class Network(object):
         print(f'Вычисляется delta, вызыванием функци cost_derivative с параметрами:\n'
               f'activations[-1] = {activations[-1]}\n'
               f'y = {y}, zs[-1] = {zs[-1]}')
-        delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
+        dE_dtlast = self.cost_derivative(activations[-1], y)
 
-        print(f'delta = {delta}')
+        # delta =  self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
+
+        print(f'dE_dtlast = {dE_dtlast}')
         print(f'nabla_b = {nabla_b}')
 
         # print(f'delta = {delta}')
         # print(f'weight = {self.weights}')
-        nabla_b[-1] = delta
+        nabla_b[-1] = dE_dtlast
         print(f'Вычисляется nabla_w[-1] с использованим:\n'
-              f'delta = {delta}, activations[-2].transpose() = {activations[-2].transpose()}\n')
-        nabla_w[-1] = np.dot(delta, activations[-2].transpose())
+              f'delta = {dE_dtlast}, activations[-2].transpose() = {activations[-2].transpose()}\n')
+        nabla_w[-1] = np.dot(dE_dtlast, activations[-2].transpose())
         print(f'nabla_w[-1] = {nabla_w[-1]}')
 
         """Переменная l в цикле ниже используется не так, как описано во второй главе книги. l = 1 означает последний слой нейронов, l = 2 – предпоследний, и так далее. Мы пользуемся преимуществом того, что в python можно использовать отрицательные индексы в массивах."""
@@ -168,7 +173,7 @@ class Network(object):
 
     def cost_derivative(self, output_activations, y):
         """Вернуть вектор частных производных (чп C_x / чп a) для выходных активаций."""
-        return (output_activations-y)
+        return (output_activations.T-y)
 
     def binary_cross_entropy(self, t, p):
         t = np.float_(t)
@@ -186,10 +191,19 @@ def sigmoid(z):
     """Сигмоида."""
     return 1.0/(1.0+np.exp(-z))
 
+def ReLu(z):
+    return np.maximum(z, 0)
+
+def ReLu_deriv(z):
+    return (z >= 0).astype(float)
+
 def sigmoid_prime(z):
     """Производная сигмоиды."""
     sig = sigmoid(z)
-    return sig*(1-sig)
+    print(f'sig = {sig}\n')
+    print(f'type(sig) = {type(sig)}\n')
+    print(f'(1-sig) = {(1-sig)}')
+    return sig @ (1-sig).transpose()
 
 df = pd.read_csv('D:/MLUniversity/work1/Dataset/BrowserLogos/output.csv')
 

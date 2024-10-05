@@ -16,6 +16,12 @@ class Network(object):
                         for x, y in zip(sizes[:-1], sizes[1:])]
         self.t = [0]*sizes[-1]
 
+
+        ######## new
+        self.biases = [np.random.randn(1, y) for y in sizes[1:]]
+        self.weights = [np.random.randn(x, y)
+                        for x, y in zip(sizes[:-1], sizes[1:])]
+
         print('INIT PARAMS')
         print(f'self.num_layers = {self.num_layers},\n'
               f'self.sizes = {self.sizes}\n'
@@ -77,7 +83,7 @@ class Network(object):
               f'activations = {activations}\n')
         counter = 0
         zs = [] # список для послойного хранения z-векторов
-        activation = np.matrix(activation).transpose()
+        activation = np.matrix(activation)
         print('start for')
         for b, w in zip(self.biases[:-1], self.weights[:-1]):
             print('-------')
@@ -87,7 +93,15 @@ class Network(object):
             # print(type(np.matrix(activation)))
 
             print(f'activation = {activation}\n')
-            z = np.dot(w, activation) + b
+            # x_test = np.random.randn(1, 4)
+            # w_test = np.random.randn(4, 5)
+            # b_test = np.random.randn(1, 5)
+            # print(f'x_test = {x_test} \n'
+            #       f'w_test = {w_test}\n'
+            #       f'b_test = {b_test}\n')
+            # t_test = x_test @ w_test + b_test
+            # print(f't_test = {t_test}')
+            z = activation @ w + b
             print(f'z = {z}\n')
             zs.append(z)
             print(f'zs = {zs}\n')
@@ -103,13 +117,14 @@ class Network(object):
         # Последний слой
         print(f'Последняя итерация = {counter}\n')
         print(f'self.biases[:-1] = {self.biases[-1]}')
+        print(f'self.weights[:-1] = {self.weights[-1]}')
         b = self.biases[-1]
         w = self.weights[-1]
-        z = np.dot(w, activation) + b
+        z = activation @ w + b
         print(f'z = {z}\n')
         zs.append(z)
         print(f'zs = {zs}\n')
-        activation = self.softmax(z)
+        activation = self.newsoftmax(z)
         print(f'after softmax(z) new activation = {activation}\n')
         activations.append(activation)
         print(f'activations = {activations}\n')
@@ -123,13 +138,26 @@ class Network(object):
 
 
 
+        ##########################################
+        # ДЛЯ ТРЕХ СЛОЕВ
 
         print('--------------------\n'
               'Обратный проход')
-        print(f'Вычисляется delta, вызыванием функци cost_derivative с параметрами:\n'
+        print(f'Вычисляется delta, вызыванием функции cost_derivative с параметрами:\n'
               f'activations[-1] = {activations[-1]}\n'
               f'y = {y}, zs[-1] = {zs[-1]}')
         dE_dtlast = self.cost_derivative(activations[-1], y)
+        print(f'dE_dtlast = {dE_dtlast}')
+        print(f'activations[-2] = {activations[-2]}, dE_dtlast = {dE_dtlast}\n')
+        dE_dW2 = activations[-2].T @ dE_dtlast
+        print(f'dE_dW2 = {dE_dW2}')
+        dE_db2 = dE_dtlast
+        print(f'dE_db2 = {dE_db2}\n')
+        # dE_dh1 = dE_dtlast @
+
+
+
+        ######################################
 
         # delta =  self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
 
@@ -173,11 +201,14 @@ class Network(object):
 
     def cost_derivative(self, output_activations, y):
         """Вернуть вектор частных производных (чп C_x / чп a) для выходных активаций."""
-        return (output_activations.T-y)
+        return (output_activations-y)
 
     def binary_cross_entropy(self, t, p):
+
         t = np.float_(t)
-        p = np.float_(p)
+        p = np.float_(p).T
+        # print(f't = {t}\n'
+        #       f'p = {p}')
         # binary cross-entropy loss
         return -np.sum(t * np.log(p) + (1 - t) * np.log(1 - p))
 
@@ -185,6 +216,10 @@ class Network(object):
         """Softmax функция для последнего слоя."""
         exp_z = np.exp(z - np.max(z))  # Для стабильности
         return exp_z / exp_z.sum(axis=0)
+
+    def newsoftmax(self, z):
+        out = np.exp(z)
+        return out / np.sum(out)
 
 #### Разные функции
 def sigmoid(z):
@@ -223,7 +258,7 @@ class_label = [0, 1]
 training_data.append((pixels, class_label))
 # print(training_data)
 
-net = Network([3, 2, 2])
+net = Network([3, 4, 2])
 net.SGD(training_data, 2, 1, 1.0)
 
 

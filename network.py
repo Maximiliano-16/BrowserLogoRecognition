@@ -140,7 +140,7 @@ class Network(object):
 
         ##########################################
         # ДЛЯ ТРЕХ СЛОЕВ
-
+        ALPHA = 0.01
         print('--------------------\n'
               'Обратный проход')
         print(f'Вычисляется delta, вызыванием функции cost_derivative с параметрами:\n'
@@ -153,7 +153,32 @@ class Network(object):
         print(f'dE_dW2 = {dE_dW2}')
         dE_db2 = dE_dtlast
         print(f'dE_db2 = {dE_db2}\n')
-        # dE_dh1 = dE_dtlast @
+        print(f'self.weights[-1].T = {self.weights[-1].T}')
+        dE_dh1 = dE_dtlast @ self.weights[-1].T
+        print(f'dE_dh1 = {dE_dh1}\n')
+        # print(f'dE_dh1 = {type(dE_dh1)}\n')
+        print(f'zs = {zs}\n')
+        print(f'ReLu_deriv(zs[-2]) = {ReLu_deriv(zs[-2])}')
+
+
+        dE_dt1 = np.array(dE_dh1) * np.array(ReLu_deriv(zs[-2]))
+        print(f'dE_dt1 = {dE_dt1}\n')
+
+        print(f'np.matrix(activations[0]).T = {np.matrix(activations[0]).T}')
+
+        dE_dW1 = np.matrix(activations[0]).T @ dE_dt1
+        print(f'dE_dW1 = {dE_dW1}')
+        dE_db1 = dE_dt1
+
+        # Update
+
+        self.weights[0] = self.weights[0] - ALPHA * dE_dW1
+        self.biases[0] = self.biases[0] - ALPHA * dE_db1
+        self.weights[1] = self.weights[1] - ALPHA * dE_dW1
+        self.biases[1] = self.biases[1] - ALPHA * dE_db1
+
+
+
 
 
 

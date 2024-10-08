@@ -164,6 +164,65 @@ class Network(object):
         acc = correct / len(data)
         return acc
 
+    def save_model_csv(self, weights, biases, sizes, filename):
+        try:
+            with open(filename, 'w') as f:
+                # Сохранение размера сети
+                f.write(','.join(map(str, sizes)) + '\n')
+
+                # Сохранение весов
+                for i, w in enumerate(weights):
+                    layer_weights = np.concatenate(
+                        w).flatten()  # Преобразование в одномерный массив
+                    f.write(','.join(map(str, layer_weights)) + '\n')
+
+                # Сохранение смещений
+                for i, b in enumerate(biases):
+                    layer_biases = b.flatten()  # Преобразование в одномерный массив
+                    f.write(','.join(map(str, layer_biases)) + '\n')
+
+            print(f"Модель успешно сохранена в '{filename}'.")
+        except Exception as e:
+            print(f"Ошибка при сохранении модели: {e}")
+
+    def load_model_csv(self, filename):
+
+        # Загрузка размеров сети
+        sizes = []
+        self.biases = []
+        self.weights = []
+        with open(filename, 'r') as f:
+            sizes = list(map(int, f.readline().strip().split(',')))
+
+            layer_index = 0
+
+            # Загрузка весов
+            for _ in range(len(sizes) - 1):
+                layer_weights = np.array(list(map(float, f.readline().strip().split(','))))
+
+                # Восстанавливаем форму
+                layer_weights = layer_weights.reshape(sizes[layer_index],
+                                                      sizes[layer_index+1])
+
+                self.weights.append(layer_weights)
+                layer_index += 1
+
+            # Загрузка смещений
+            layer_index = 0
+            for _ in range(len(sizes) - 1):
+                layer_biases = np.array(list(map(float, f.readline().strip().split(','))))
+
+                # Восстанавливаем форму
+                # layer_biases = layer_biases.reshape(sizes[layer_index+1],
+                #                                     1)  # Столбец
+                layer_biases = np.array([layer_biases])
+                self.biases.append(layer_biases)
+                layer_index += 1
+
+        print(f"Модель успешно загружена из '{filename}'.")
+        self.sizes = sizes
+        self.num_layers = len(sizes)
+
 
 #### Разные функции
 def sigmoid(z):
@@ -207,8 +266,18 @@ class_mapping = {
 first_row = df.iloc[0]
 
 rows = df.iloc[0:2]
-print(len(list(map(int, rows['pixels'][0].split(',')))))
-print(df['class'][1])
+
+
+# Определяем размер тестовой выборки
+test_size = int(0.2 * len(df))
+
+# Получаем случайные индексы для тестовой выборки
+test_indices = df.sample(n=test_size, random_state=42).index
+
+# Разделяем выборки
+train_df = df.drop(test_indices)
+test_df = df.loc[test_indices]
+train_df = train_df.sample(frac=1, random_state=42)
 
 for i in range(len(df)):
     pixels = list(map(int, df['pixels'][0].split(',')))

@@ -3,6 +3,7 @@ import random
 # Сторонние библиотеки
 import numpy as np
 import pandas as pd
+import csv
 
 
 class Network(object):
@@ -22,12 +23,12 @@ class Network(object):
         self.weights = [np.random.randn(x, y)
                         for x, y in zip(sizes[:-1], sizes[1:])]
 
-        # print('INIT PARAMS')
-        # print(f'self.num_layers = {self.num_layers},\n'
-        #       f'self.sizes = {self.sizes}\n'
-        #       f'self.biases = {self.biases}\n'
-        #       f'self.weights = {self.weights}\n'
-        #       f'---------------------')
+        print('INIT PARAMS')
+        print(f'self.num_layers = {self.num_layers},\n'
+              f'self.sizes = {self.sizes}\n'
+              f'self.biases = {self.biases}\n'
+              f'self.weights = {self.weights}\n'
+              f'---------------------')
 
 
     def feedforward(self, a):
@@ -338,16 +339,73 @@ class Network(object):
             if y_pred == res:
                 correct += 1
 
-        # for x, y in data:
-        #     z = self.predict(x)
-        #     y_pred = np.argmax(z)
-        #     res = np.argmax(y)
-        #     if y_pred == res:
-        #         correct +=1
-        #     # print(y_pred)
 
         acc = correct / len(data)
         return acc
+
+    def save_model_csv(self, weights, biases, sizes, filename):
+        try:
+            with open(filename, 'w') as f:
+                # Сохранение размера сети
+                f.write(','.join(map(str, sizes)) + '\n')
+
+                # Сохранение весов
+                for i, w in enumerate(weights):
+                    layer_weights = np.concatenate(
+                        w).flatten()  # Преобразование в одномерный массив
+                    f.write(','.join(map(str, layer_weights)) + '\n')
+
+                # Сохранение смещений
+                for i, b in enumerate(biases):
+                    layer_biases = b.flatten()  # Преобразование в одномерный массив
+                    f.write(','.join(map(str, layer_biases)) + '\n')
+
+            print(f"Модель успешно сохранена в '{filename}'.")
+        except Exception as e:
+            print(f"Ошибка при сохранении модели: {e}")
+
+    def load_model_csv(self, filename):
+
+        # Загрузка размеров сети
+        sizes = []
+        self.biases = []
+        self.weights = []
+        with open(filename, 'r') as f:
+            sizes = list(map(int, f.readline().strip().split(',')))
+            print('size = ', sizes)
+
+            weights = []
+            biases = []
+            layer_index = 0
+
+            # Загрузка весов
+            for _ in range(len(sizes) - 1):
+                layer_weights = np.array(list(map(float, f.readline().strip().split(','))))
+
+                # Восстанавливаем форму
+                layer_weights = layer_weights.reshape(sizes[layer_index],
+                                                      sizes[layer_index+1])
+                print(f'layer_weights = {layer_weights}\n')
+                self.weights.append(layer_weights)
+                layer_index += 1
+
+            # Загрузка смещений
+            layer_index = 0
+            for _ in range(len(sizes) - 1):
+                layer_biases = np.array(list(map(float, f.readline().strip().split(','))))
+
+                # Восстанавливаем форму
+                # layer_biases = layer_biases.reshape(sizes[layer_index+1],
+                #                                     1)  # Столбец
+                layer_biases = np.array([layer_biases])
+                print(f'layer_biases = {layer_biases}\n')
+                self.biases.append(layer_biases)
+                layer_index += 1
+
+        print(f"Модель успешно загружена из '{filename}'.")
+        self.sizes = sizes
+        self.num_layers = len(sizes)
+
 
 
 #### Разные функции
@@ -368,6 +426,7 @@ def sigmoid_prime(z):
     print(f'type(sig) = {type(sig)}\n')
     print(f'(1-sig) = {(1-sig)}')
     return sig @ (1-sig).transpose()
+
 
 df = pd.read_csv('D:/MLUniversity/work1/Dataset/BrowserLogos/output.csv')
 
@@ -396,14 +455,31 @@ rows = df.iloc[0:2]
 print(len(list(map(int, rows['pixels'][0].split(',')))))
 print(df['class'][1])
 
+# Определяем размер тестовой выборки
+test_size = int(0.2 * len(df))
+
+# Получаем случайные индексы для тестовой выборки
+test_indices = df.sample(n=test_size, random_state=42).index
+
+# Разделяем выборки
+train_df = df.drop(test_indices)
+test_df = df.loc[test_indices]
+train_df = train_df.sample(frac=1, random_state=42)
+
+print(train_df.head())
+print(test_df.head())
+print(train_df.shape)
+print(test_df.shape)
+
 # for i in range(5):
 #     # pixels = list(map(int, rows['pixels'][0].split(',')))[:10]
 #     class_label = class_mapping[rows['class'][1]]
 #     print(class_label)
 # # print(rows['pixels'][0])
-for i in range(1, len(df), 100):
+for i in range(1, len(df), 200):
     pixels = list(map(int, df['pixels'][0].split(',')))[:5]
     class_label = class_mapping[df['class'][1]]
+    class_label = [0, 1, 0]
     training_data2.append((pixels, class_label))
 
 
@@ -415,9 +491,15 @@ for i in range(1, len(df), 100):
 # class_label = [0, 1, 0]
 # class_label = np.matrix(class_label)
 training_data.append((pixels, class_label))
-# print(training_data)
+print(training_data2)
 
-net = Network([5, 4, 10])
+net = Network([5, 4, 3])
+# print(f'net.weights = {net.weights}')
+# net.save_model_csv(weights=net.weights, biases=net.biases, sizes=net.sizes, filename='model_params.csv')
+net.load_model_csv('model_params.csv')
+# print(f'net.weights = {net.weights}\n')
+# print(f'net.biases = {net.biases}')
+
 net.SGD(training_data2, 3, 1, 0.1)
 acc = net.calc_accuracy(data=training_data2)
 

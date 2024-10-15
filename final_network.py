@@ -188,6 +188,9 @@ class Network(object):
         return acc
 
 
+
+
+
 #### Разные функции
 def sigmoid(z):
     """Сигмоида."""
@@ -297,8 +300,8 @@ acc = net.calc_accuracy(data=test_data2)
 
 print(f'Accuracy = {acc}')
 
-import matplotlib.pyplot as plt
-
-plt.plot(loss_arr)
-plt.show()
+# import matplotlib.pyplot as plt
+#
+# plt.plot(loss_arr)
+# plt.show()
 

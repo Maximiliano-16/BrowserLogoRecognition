@@ -28,14 +28,14 @@ class Network(object):
                         for x, y in zip(sizes[:-1], sizes[1:])]
 
         # print('INIT PARAMS')
-        print(f'self.num_layers = {self.num_layers},\n'
-              f'self.sizes = {self.sizes}\n'
-              f'self.biases = {self.biases[:1]}\n'
-              f'self.weights = {self.weights[:1]}\n'
-              f'type self.biases = {type(self.biases[0])}\n'
-              f'type self.weights = {type(self.weights[0])}\n'
-              
-              f'---------------------')
+        # print(f'self.num_layers = {self.num_layers},\n'
+        #       f'self.sizes = {self.sizes}\n'
+        #       f'self.biases = {self.biases[:1]}\n'
+        #       f'self.weights = {self.weights[:1]}\n'
+        #       f'type self.biases = {type(self.biases[0])}\n'
+        #       f'type self.weights = {type(self.weights[0])}\n'
+        #
+        #       f'---------------------')
 
 
     def feedforward(self, a):
@@ -473,6 +473,31 @@ class Network(object):
         self.sizes = sizes
         self.num_layers = len(sizes)
 
+    def load_params(self, file_weights, file_biases):
+
+        with open(file_weights, 'rb') as f:
+            self.weights = pickle.load(f)
+
+        with open(file_biases, 'rb') as f:
+            self.biases = pickle.load(f)
+
+    def res_interpreter(self, y_pred):
+        res_dict = {
+            0: 'Amigo',
+            1: 'Chrome',
+            2: 'Maxthon',
+            3: 'Opera',
+            4: 'RedApp',
+            5: 'Safari',
+            6: 'Tor',
+            7: 'Via',
+            8: 'Vivaldi',
+            9: 'Yandex',
+        }
+        return res_dict[y_pred]
+
+
+
 
 
 #### Разные функции
@@ -572,53 +597,54 @@ for i in range(1, len(test_df)):
     # class_label = [0, 1, 0]
     test_data2.append((pixels, class_label))
 
+if __name__ == '__main__':
 
-  # Преобразуем строку в список целых чисел
-# print(training_data2)
-# pixels = [0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1]
-# pixels = [0, 1, 1, 0, 0]
-# class_label = class_mapping.get(first_row['class'], 0)  # Получаем метку класса, по умолчанию 0
-# class_label = [0, 1, 0]
-# class_label = np.matrix(class_label)
-# training_data.append((pixels, class_label))
-# print(training_data2)
-# etwork([16384, 1024, 10])
-net = Network([4096, 128, 10])
-# net = Network([10, 8, 5, 3])
-# print(f'net.weights = {net.weights}')
-
-
-
-# net.load_model_csv('model_params.csv')
-# print(f'net.weights = {net.weights}\n')
-# print(f'net.biases = {net.biases}')
-
-# net.SGD(training_data2, 30, 0.01)
-# net.save_model_csv(weights=net.weights, biases=net.biases, sizes=net.sizes, filename='model_params2.csv')
-# with open('model_params_weight.pkl', 'wb') as f:
-#     pickle.dump(net.weights, f)
-#
-# with open('model_params_biases.pkl', 'wb') as f:
-#     pickle.dump(net.biases, f)
-
-with open('model_params_weight.pkl', 'rb') as f:
-    net.weights = pickle.load(f)
-
-with open('model_params_biases.pkl', 'rb') as f:
-    net.biases = pickle.load(f)
+      # Преобразуем строку в список целых чисел
+    # print(training_data2)
+    # pixels = [0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1]
+    # pixels = [0, 1, 1, 0, 0]
+    # class_label = class_mapping.get(first_row['class'], 0)  # Получаем метку класса, по умолчанию 0
+    # class_label = [0, 1, 0]
+    # class_label = np.matrix(class_label)
+    # training_data.append((pixels, class_label))
+    # print(training_data2)
+    # etwork([16384, 1024, 10])
+    net = Network([4096, 128, 10])
+    # net = Network([10, 8, 5, 3])
+    # print(f'net.weights = {net.weights}')
 
 
-# f'self.biases = {net.biases[0]}\n'
-# f'self.weights = {net.weights[0]}\n'
 
-acc = net.calc_accuracy(data=test_data2)
+    # net.load_model_csv('model_params.csv')
+    # print(f'net.weights = {net.weights}\n')
+    # print(f'net.biases = {net.biases}')
 
-# acc = self.calc_accuracy(data=training_data)
-print(f'Accuracy = {acc}')
+    # net.SGD(training_data2, 30, 0.01)
+    # net.save_model_csv(weights=net.weights, biases=net.biases, sizes=net.sizes, filename='model_params2.csv')
+    # with open('model_params_weight.pkl', 'wb') as f:
+    #     pickle.dump(net.weights, f)
+    #
+    # with open('model_params_biases.pkl', 'wb') as f:
+    #     pickle.dump(net.biases, f)
 
-import matplotlib.pyplot as plt
-plt.plot(loss_arr)
-plt.show()
+    with open('model_params_weight.pkl', 'rb') as f:
+        net.weights = pickle.load(f)
+
+    with open('model_params_biases.pkl', 'rb') as f:
+        net.biases = pickle.load(f)
+
+
+    # f'self.biases = {net.biases[0]}\n'
+    # f'self.weights = {net.weights[0]}\n'
+
+    acc = net.calc_accuracy(data=test_data2)
+
+    # acc = self.calc_accuracy(data=training_data)
+    print(f'Accuracy = {acc}')
+
+    # import matplotlib.pyplot as plt
+    # plt.plot(loss_arr)
+    # plt.show()
 
 
 

@@ -22,6 +22,7 @@ class Network(object):
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(sizes[:-1], sizes[1:])]
         self.t = [0] * sizes[-1]
+        self.res_entropy = 100
 
         ######## new
         self.biases = [np.random.randn(1, y) for y in sizes[1:]]
@@ -104,7 +105,7 @@ class Network(object):
         counter += 1
 
         # обратный проход
-        res_entropy = self.binary_cross_entropy(y, activations[-1])
+        self.res_entropy = self.binary_cross_entropy(y, activations[-1])
         dE_dtlast = self.cost_derivative(activations[-1], y)
         dE_dt1 = dE_dtlast
         for i in range(2, len(activations)):
@@ -121,7 +122,7 @@ class Network(object):
         nabla_b[0] = dE_db1
         nabla_w[0] = dE_dW1
 
-        loss_arr.append(res_entropy)
+        loss_arr.append(self.res_entropy)
         return (nabla_b, nabla_w)
 
     def my_evaluate(self, test_data):

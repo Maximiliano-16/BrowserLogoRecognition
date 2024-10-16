@@ -5,6 +5,7 @@ import pickle
 # Сторонние библиотеки
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import csv
 dt = np.dtype(np.float64)
 loss_arr = []
@@ -20,12 +21,16 @@ class Network(object):
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(sizes[:-1], sizes[1:])]
         self.t = [0]*sizes[-1]
+        self.res_entropy = 100
 
 
         ######## new
         self.biases = [np.random.randn(1, y) for y in sizes[1:]]
         self.weights = [np.random.randn(x, y,)
                         for x, y in zip(sizes[:-1], sizes[1:])]
+
+        self.confusion_matrix = np.zeros((10, 10))
+
 
         # print('INIT PARAMS')
         # print(f'self.num_layers = {self.num_layers},\n'
@@ -53,7 +58,11 @@ class Network(object):
         n = len(training_data)
         # print(f'n = {n}\n'
               # f'mini_batch_size = {mini_batch_size}\n')
+        recall_arr = []
+        accuracy_arr = []
+        precision_arr = []
         for j in range(epochs):
+
             # print(f'training_data = \n {training_data}')
             random.shuffle(training_data)
             # print(f'training_data = \n {training_data}')
@@ -84,6 +93,15 @@ class Network(object):
                     self.biases[counter] = b - eta * db
                     counter += 1
 
+            acc = self.calc_accuracy(data=test_data2)
+            accuracy_arr.append(acc)
+
+            recall = self.calculate_recall()
+            recall_arr.append(recall)
+
+            precision = self.calculate_precision()
+            precision_arr.append(precision)
+
                 # nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
                 # nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
                 # self.weights = [w - (eta / len(training_data[i])) * nw for w, nw in zip(self.weights, nabla_w)]
@@ -95,6 +113,13 @@ class Network(object):
                     j, self.evaluate(test_data), n_test))
             else:
                 print("Epoch {0} complete".format(j))
+                print(f"Accuracy = {accuracy_arr}")
+                print(f"Recall = {recall_arr}")
+                print(f"Precision = {precision_arr}")
+        self.create_graphics(accuracy_arr, 'Accuracy')
+        self.create_graphics(recall_arr, 'Recall')
+        self.create_graphics(recall_arr, 'Precision')
+        self.create_graphics(loss_arr, 'Loss')
 
 
                 # self.update_mini_batch(training_data[i], eta)
@@ -201,7 +226,7 @@ class Network(object):
         # обратный проход
         # print('--------------------\n')
         # print(f'y = {y}')
-        res_entropy = self.binary_cross_entropy(y, activations[-1])
+        self.res_entropy = self.binary_cross_entropy(y, activations[-1])
         # print(f'y = {y}\n'
         #       f'activations[-1] = {activations[-1]}')
         # print(f'res_entropy = {res_entropy}\n')
@@ -234,7 +259,7 @@ class Network(object):
         nabla_b[0] = dE_db1
         nabla_w[0] = dE_dW1
 
-        loss_arr.append(res_entropy)
+        loss_arr.append(self.res_entropy)
 
 
 
@@ -401,11 +426,13 @@ class Network(object):
             z = self.predict(x)
             y_pred = np.argmax(z)
             res = np.argmax(y)
+            self.confusion_matrix[res, y_pred] +=1
             if y_pred == res:
                 correct += 1
 
-
-        acc = correct / len(data)
+        print(f'correct = {correct}\n'
+              f'len(data) = {len(data)}')
+        acc = correct / (len(data)-1)
         return acc
 
     def save_model_csv(self, weights, biases, sizes, filename):
@@ -496,7 +523,72 @@ class Network(object):
         }
         return res_dict[y_pred]
 
+    def create_training_data(self, train_df):
+        class_label = []
+        pixels = []
+        for i in range(1, len(train_df)):
+            pixels = list(map(int, train_df.iloc[i]['pixels'].split(',')))
+            class_label = class_mapping[train_df.iloc[i]['class']]
+            # class_label = [0, 1, 0]
+            training_data2.append((pixels, class_label))
 
+        return training_data2
+
+    def create_testing_data(self, test_df):
+        class_label = []
+        pixels = []
+        for i in range(1, len(test_df)):
+            pixels = list(map(int, test_df.iloc[i]['pixels'].split(',')))
+            class_label = class_mapping[test_df.iloc[i]['class']]
+            # class_label = [0, 1, 0]
+            test_data2.append((pixels, class_label))
+
+        return test_data2
+
+    def calculate_recall(self):
+        diagonal = np.diag(self.confusion_matrix)
+        FN = []
+        # TP = np.sum(diagonal)
+        for i in range(0, 10):
+            sum_of_row = np.sum(self.confusion_matrix[i])
+            FN.append(sum_of_row-diagonal[i])
+
+        print(FN)
+        print(np.sum(FN))
+        return np.sum(diagonal) / (np.sum(FN) + np.sum(diagonal))
+
+    def calculate_precision(self):
+        diagonal = np.diag(self.confusion_matrix)
+        FP = []
+        transponsed_confusion_matrix = self.confusion_matrix.T
+        # TP = np.sum(diagonal)
+        for j in range(0, 10):
+            sum_of_row = np.sum(transponsed_confusion_matrix[j])
+            FP.append(sum_of_row-diagonal[j])
+
+        print(FP)
+        print(np.sum(FP))
+        return np.sum(diagonal) / (np.sum(FP) + np.sum(diagonal))
+
+    def create_graphics(self, arr, name):
+        # Создание осей X (например, количество эпох)
+        epochs = list(range(1, len(arr) + 1))
+
+        # Построение графика
+        plt.plot(epochs, arr, marker='o', linestyle='-', color='b')
+
+        # Подписи осей
+        plt.xlabel('Эпохи')
+        plt.ylabel(name)
+
+        # Заголовок графика
+        plt.title(f'График {name}')
+
+        # Показать сетку
+        plt.grid()
+
+        # Показать график
+        plt.show()
 
 
 
@@ -530,6 +622,7 @@ training_data2 = []
 class_label = []
 pixels = []
 test_data2 = []
+
 
 class_mapping = {
     'Amigo': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -640,11 +733,13 @@ if __name__ == '__main__':
     acc = net.calc_accuracy(data=test_data2)
 
     # acc = self.calc_accuracy(data=training_data)
+    print(f'Confusion matrix: \n{net.confusion_matrix}')
+    print(f'RECALL: \n{net.calculate_recall()}')
     print(f'Accuracy = {acc}')
 
     # import matplotlib.pyplot as plt
-    # plt.plot(loss_arr)
-    # plt.show()
+# plt.plot(loss_arr)
+# plt.show()
 
 
 

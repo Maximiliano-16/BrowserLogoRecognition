@@ -278,7 +278,7 @@ for i in range(1, len(test_df)):
 
 net = Network([4096, 128, 10])
 
-net.SGD(training_data2, 30, 0.01)
+net.SGD(training_data2, 15, 0.01)
 
 # Сохранение весов модели
 

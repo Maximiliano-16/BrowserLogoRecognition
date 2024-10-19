@@ -1,6 +1,7 @@
 import random
 import sys
 import pickle
+from cgi import print_form
 
 # Сторонние библиотеки
 import numpy as np
@@ -8,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 dt = np.dtype(np.float64)
-loss_arr = []
+
 np.seterr(divide = 'ignore')
 
 class Network(object):
@@ -29,14 +30,17 @@ class Network(object):
         self.weights = [np.random.randn(x, y,)
                         for x, y in zip(sizes[:-1], sizes[1:])]
 
-        self.confusion_matrix = np.zeros((10, 10))
 
+        self.confusion_matrix = np.zeros((10, 10))
+        self.y_true = []
+        self.y_pred = []
+        self.entropy_counter = 0
 
         # print('INIT PARAMS')
         # print(f'self.num_layers = {self.num_layers},\n'
         #       f'self.sizes = {self.sizes}\n'
-        #       f'self.biases = {self.biases[:1]}\n'
-        #       f'self.weights = {self.weights[:1]}\n'
+        #       f'self.biases = {self.biases}\n'
+        #       f'self.weights = {self.weights}\n'
         #       f'type self.biases = {type(self.biases[0])}\n'
         #       f'type self.weights = {type(self.weights[0])}\n'
         #
@@ -61,9 +65,11 @@ class Network(object):
         recall_arr = []
         accuracy_arr = []
         precision_arr = []
+        loss_arr = []
         for j in range(epochs):
 
             # print(f'training_data = \n {training_data}')
+
             random.shuffle(training_data)
             # print(f'training_data = \n {training_data}')
             for i in range(n):
@@ -77,9 +83,7 @@ class Network(object):
                 x, y = training_data[i][0], training_data[i][1]
                 # print(f'x = {x}, y = {y}')
                 delta_nabla_b, delta_nabla_w = self.backprop(x, y)
-                # print(f'delta_nabla_b = {delta_nabla_b}\n'
-                #       f'delta_nabla_w = {delta_nabla_w}\n')
-                #
+
                 # print(f'self.weight[0] = {self.weights[0]}')
                 # print(f'delta_nabla_w[0] = {delta_nabla_w[0]}')
 
@@ -102,11 +106,12 @@ class Network(object):
             precision = self.calculate_precision()
             precision_arr.append(precision)
 
-                # nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
-                # nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-                # self.weights = [w - (eta / len(training_data[i])) * nw for w, nw in zip(self.weights, nabla_w)]
-                # self.biases = [b - (eta / len(training_data[i])) * nb
-                #                for b, nb in zip(self.biases, nabla_b)]
+            loss = self.multiclass_cross_entropy_loss()
+            loss_arr.append(loss)
+
+            self.y_true = []
+            self.y_pred = []
+
 
             if test_data:
                 print("Epoch {0}: {1} / {2}".format(
@@ -116,62 +121,18 @@ class Network(object):
                 print(f"Accuracy = {accuracy_arr}")
                 print(f"Recall = {recall_arr}")
                 print(f"Precision = {precision_arr}")
+                print(f"Loss = {loss_arr}")
         self.create_graphics(accuracy_arr, 'Accuracy')
         self.create_graphics(recall_arr, 'Recall')
         self.create_graphics(recall_arr, 'Precision')
         self.create_graphics(loss_arr, 'Loss')
 
 
-                # self.update_mini_batch(training_data[i], eta)
-
-            # mini_batches = [
-            #     training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
-            # # print(f'mini_batches = {mini_batches}')
-            # for mini_batch in mini_batches:
-            #     print(f'mini_batch = {mini_batch}')
-            #     self.update_mini_batch(mini_batch, eta)
-
-
-
-                # print("Epoch {0}: {1} / {2}".format(
-                #     j, self.my_evaluate(training_data), len(training_data)))
-
-    def update_mini_batch(self, mini_batch, eta):
-        """Обновить веса и смещения сети, применяя градиентный спуск с использованием обратного распространения к одному мини-пакету. mini_batch – это список кортежей (x, y), а eta – скорость обучения."""
-        nabla_b = [np.zeros(b.shape) for b in self.biases]
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
-        # print(f'mini_batch = {mini_batch}')
-        # for x, y in mini_batch:
-            # print('IN UPDATE MINI BATCH')
-            # print(f'x = {x}\n'
-            #       f'y = {y}\n'
-            #       f'------------')
-
-            # print(f'IN update_mini_batch\n'
-            #       f'nabla_b = {nabla_b}\n'
-            #       f'nabla_w = {nabla_w}\n')
-
-        # print(f'Веса и смещения ДО изменения\n'
-        #       f'self.weights = {self.weights}\n'
-        #       f' self.biases = { self.biases}\n')
-
-        self.weights = [w-(eta/len(mini_batch))*nw
-                        for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b-(eta/len(mini_batch))*nb
-                       for b, nb in zip(self.biases, nabla_b)]
-        # print(f'Веса и смещения ПОСЛЕ изменения\n'
-        #       f'self.weights = {self.weights}\n'
-        #       f' self.biases = {self.biases}\n')
-
     def backprop(self, x, y):
         """Вернуть кортеж ``(nabla_b, nabla_w)``, представляющий градиент для функции стоимости C_x.  ``nabla_b`` и ``nabla_w`` - послойные списки массивов numpy, похожие на ``self.biases`` and ``self.weights``."""
+
         nabla_b = [np.zeros(b.shape, dtype=dt) for b in self.biases]
         nabla_w = [np.zeros(w.shape, dtype=dt) for w in self.weights]
-        # print(f'nabla_b = {nabla_b}\n'
-        #       f'nabla_w = {nabla_w}\n')
-        ALPHA = 0.01
-        NUM_EPOCHS = 10
-
 
 
         # прямой проход
@@ -185,13 +146,6 @@ class Network(object):
         activation = np.matrix(activation)
         # print('start for')
         for b, w in zip(self.biases[:-1], self.weights[:-1]):
-            # print('-------')
-            # print(f'Итерация = {counter}\n')
-            # print(f'b = {b}, w = {w}\n')
-            # print(f'Вычисление z c использованием: w, activation, b')
-            # print(type(np.matrix(activation)))
-
-            # print(f'activation = {activation}\n')
 
             z = activation @ w + b
             # print(f'z = {z}\n')
@@ -226,92 +180,60 @@ class Network(object):
         # обратный проход
         # print('--------------------\n')
         # print(f'y = {y}')
-        self.res_entropy = self.binary_cross_entropy(y, activations[-1])
-        # print(f'y = {y}\n'
-        #       f'activations[-1] = {activations[-1]}')
-        # print(f'res_entropy = {res_entropy}\n')
+        # print(f'activcation = {activation[0]}\n'
+        #       f'activcations[-1] = {activations[-1][0]}')
+        last_act = np.array(activations[-1][0])
+        self.y_pred.append(last_act)
+        self.y_true.append(y)
+        # self.res_entropy = self.binary_cross_entropy(y, activations[-1])
+        entropy = self.sparse_cross_entropy_loss(last_act, y)
+        self.entropy_counter +=1
+        if self.entropy_counter == 100:
+            print(f'res_entropy = {entropy}')
+            self.entropy_counter = 0
+
+        # print(f'res_entropy = {self.res_entropy}\n')
+        # loss_arr.append(self.res_entropy)
 
 
 
         ##########################################
         # ДЛЯ ТРЕХ СЛОЕВ
 
-        # print('--------------------\n'
-        #       'Обратный проход')
-        # print(f'Вычисляется delta, вызыванием функции cost_derivative с параметрами:\n'
-        #       f'activations[-1] = {activations[-1]}\n'
-        #       f'y = {y}, zs[-1] = {zs[-1]}')
+        last_layer_index = self.num_layers - 1
+        # dE_dtlast = self.cost_derivative(activations[last_layer_index], y)
+        dE_dt = self.cost_derivative(activations[last_layer_index], y)
 
-        dE_dtlast = self.cost_derivative(activations[-1], y)
-        dE_dt1 = dE_dtlast
-        # print(f'zs = {zs}')
-        for i in range(2, len(activations)):
-            dE_dW2 = activations[-i].T @ dE_dtlast
-            dE_db2 = dE_dt1
-            dE_dh1 = dE_dt1 @ self.weights[-i+1].T
-            # print(f'ReLu_deriv = {ReLu_deriv(zs[-i])}')
-            dE_dt1 = np.array(dE_dh1, dtype=dt) * np.array(ReLu_deriv(zs[-i]), dtype=dt)
-            nabla_b[-i+1] = dE_db2
-            nabla_w[-i+i] = dE_dW2
-
-        dE_dW1 = np.matrix(activations[0], dtype=dt).T @ dE_dt1
-        dE_db1 = dE_dt1
-        nabla_b[0] = dE_db1
-        nabla_w[0] = dE_dW1
-
-        loss_arr.append(self.res_entropy)
+        for layer_index in range(last_layer_index-1, 0, -1):
+            de_dW = activations[layer_index].T @ dE_dt
+            de_db = dE_dt
+            de_dactivation = dE_dt @ self.weights[layer_index].T
+            dE_dt = np.array(de_dactivation) * np.array(ReLu_deriv(zs[layer_index-1]))
+            nabla_b[layer_index] = de_db
+            nabla_w[layer_index] = de_dW
+        de_dW = np.matrix(x).T @ dE_dt
+        de_db = dE_dt
+        nabla_b[0] = de_db
+        nabla_w[0] = de_dW
 
 
-
-        # # print(f'dE_dtlast = {dE_dtlast}')
-        # # print(f'activations[-2] = {activations[-2]}, dE_dtlast = {dE_dtlast}\n')
-        # dE_dW2 = activations[-2].T @ dE_dtlast
-        # # print(f'dE_dW2 = {dE_dW2}')
-        # dE_db2 = dE_dtlast
-        # # print(f'dE_db2 = {dE_db2}\n')
-        # # print(f'self.weights[-1].T = {self.weights[-1].T}')
-        # dE_dh1 = dE_dtlast @ self.weights[-1].T
-        # # print(f'dE_dh1 = {dE_dh1}\n')
-        # # print(f'dE_dh1 = {type(dE_dh1)}\n')
-        # # print(f'zs = {zs}\n')
-        # # print(f'ReLu_deriv(zs[-2]) = {ReLu_deriv(zs[-2])}')
+        # dE_dt1 = dE_dtlast
         #
         #
-        # dE_dt1 = np.array(dE_dh1) * np.array(ReLu_deriv(zs[-2]))
-        # # print(f'dE_dt1 = {dE_dt1}\n')
+        # # print(f'zs = {zs}')
+        # for i in range(2, len(activations)):
+        #     dE_dW2 = activations[-i].T @ dE_dtlast
+        #     dE_db2 = dE_dt1
+        #     dE_dh1 = dE_dt1 @ self.weights[-i+1].T
+        #     # print(f'ReLu_deriv = {ReLu_deriv(zs[-i])}')
+        #     dE_dt1 = np.array(dE_dh1, dtype=dt) * np.array(ReLu_deriv(zs[-i]), dtype=dt)
+        #     nabla_b[-i+1] = dE_db2
+        #     nabla_w[-i+i] = dE_dW2
         #
-        # # print(f'np.matrix(activations[0]).T = {np.matrix(activations[0]).T}')
-        #
-        # dE_dW1 = np.matrix(activations[0]).T @ dE_dt1
-        # # print(f'dE_dW1 = {dE_dW1}')
+        # dE_dW1 = np.matrix(activations[0], dtype=dt).T @ dE_dt1
         # dE_db1 = dE_dt1
-        #
-        # # Update
-        #
-        # # self.weights[0] = self.weights[0] - ALPHA * dE_dW1
-        # # self.biases[0] = self.biases[0] - ALPHA * dE_db1
-        # # self.weights[1] = self.weights[1] - ALPHA * dE_dW2
-        # # self.biases[1] = self.biases[1] - ALPHA * dE_db2
-        #
-        #
-        # # print(f'\n'
-        # #       f'---------------------------\n'
-        # #       f'ФИНАЛЬНЫЕ ЗНАЧЕНИЯ\n'
-        # #       f'dE_db1 = {dE_db1}\n'
-        # #       f'dE_dW1 = {dE_dW1}\n'
-        # #       f'dE_db2 = {dE_db2}\n'
-        # #       f'dE_dW2 = {dE_dW2}\n')
-        #
         # nabla_b[0] = dE_db1
         # nabla_w[0] = dE_dW1
-        # nabla_b[1] = dE_db2
-        # nabla_w[1] = dE_dW2
-
-        # print(f'nabla_b = {nabla_b}\n'
-        #       f'nabla_w = {nabla_w}\n')
-
-
-
 
 
         ######################################
@@ -333,33 +255,33 @@ class Network(object):
         return (output_activations-y)
 
     def binary_cross_entropy(self, t, p):
+        t_index= np.argmax(t)
 
         t = np.float_(t)
         p = np.float_(p).T
         # print(f't = {t}\n'
         #       f'p = {p}')
         # binary cross-entropy loss
+        print(np.log(p[t_index]) * (-1))
         return -np.sum(t * np.log(p) + (1 - t) * np.log(1 - p))
 
-    # def softmax(self, z):
-    #     """Softmax функция для последнего слоя."""
-    #     exp_z = np.exp(z - np.max(z))  # Для стабильности
-    #
-    #     return exp_z / exp_z.sum(axis=0)
+    def multiclass_cross_entropy_loss(self):
+        """
+        Вычисляет Multiclass Cross-Entropy Loss.
 
-    # def min_max_scaler(self, data):
-    #     # Преобразуем данные в двумерный массив, если они одномерные
-    #     data = np.array(data)
-    #     if data.ndim == 1:
-    #         data = data.reshape(1, -1)
-    #
-    #     # Находим минимум и максимум в каждом столбце
-    #     min_vals = np.min(data, axis=1, keepdims=True)
-    #     max_vals = np.max(data, axis=1, keepdims=True)
-    #
-    #     # Масштабируем данные
-    #     scaled_data = 2 * ((data - min_vals) / (max_vals - min_vals)) - 1
-    #     return scaled_data
+        :param y_true: Массива истинных меток (размер N x C)
+        :param y_pred: Массива предсказанных вероятностей (размер N x C)
+        :return: Значение потерь
+        """
+        # Убедимся, что вероятности нормализованы
+        self.y_pred = np.clip(self.y_pred, 1e-15, 1 - 1e-15)  # избегаем логарифма 0
+        loss = -np.mean(np.sum(self.y_true * np.log(self.y_pred), axis=1))
+        return loss
+
+    def sparse_cross_entropy_loss(self, p_pred, y_true):
+        y_idx = np.argmax(y_true)
+        return np.log(p_pred[y_idx]) * (-1)
+
 
     def min_max_scaler(self, data, new_min=-20, new_max=20):
         # Преобразуем данные в двумерный массив, если они одномерные
@@ -407,17 +329,27 @@ class Network(object):
         # print(f'x = {x}\n'
         #       f'self.weights[0] = {self.weights[0]}\n'
         #       f'self.biases[0] = {self.biases[0]}\n')
-        t1 = x @ self.weights[0] + self.biases[0]
-        # print(f't1 = {t1}')
-        h1 = ReLu(t1)
-        # print(f'h1 = {h1}\n'
-        #       f'self.weights[1] = {self.weights[1]}\n'
-        #       f'self.biases[1] = {self.biases[1]}\n')
-        t2 = h1 @ self.weights[1] + self.biases[1]
-        # print(f't2 = {t2}')
-        z = self.softmax(t2)
+        num_prop_layers = self.num_layers -1
+        h = x
+        for num_layer in range(0, num_prop_layers):
+            t = h @ self.weights[num_layer] + self.biases[num_layer]
+            if num_layer != num_prop_layers - 1:
+                h = ReLu(t)
+            else:
+                h = self.softmax(t)
+        return h
+
+        # t1 = x @ self.weights[0] + self.biases[0]
+        # # print(f't1 = {t1}')
+        # h1 = ReLu(t1)
+        # # print(f'h1 = {h1}\n'
+        # #       f'self.weights[1] = {self.weights[1]}\n'
+        # #       f'self.biases[1] = {self.biases[1]}\n')
+        # t2 = h1 @ self.weights[1] + self.biases[1]
+        # # print(f't2 = {t2}')
+        # z = self.softmax(t2)
         # print(f'z = {z}')
-        return z
+        # return z
 
     def calc_accuracy(self, data):
         correct = 0
@@ -507,6 +439,13 @@ class Network(object):
 
         with open(file_biases, 'rb') as f:
             self.biases = pickle.load(f)
+
+    def save_params(self, file_weights, file_biases):
+        with open(file_weights, 'wb') as f:
+            pickle.dump(self.weights, f)
+
+        with open(file_biases, 'wb') as f:
+            pickle.dump(self.biases, f)
 
     def res_interpreter(self, y_pred):
         res_dict = {
@@ -648,12 +587,12 @@ rows = df.iloc[0:2]
 test_size = int(0.2 * len(df))
 
 # Получаем случайные индексы для тестовой выборки
-test_indices = df.sample(n=test_size, random_state=129).index
+test_indices = df.sample(n=test_size).index
 
 # Разделяем выборки
 train_df = df.drop(test_indices)
 test_df = df.loc[test_indices]
-train_df = train_df.sample(frac=1, random_state=629)
+train_df = train_df.sample(frac=1)
 
 print(train_df.head())
 print(test_df.head())
@@ -668,9 +607,11 @@ print(df.info(memory_usage='deep'))
 # # print(rows['pixels'][0])
 # [np.random.randn(y, 1) for y in sizes[1:]]
 # [np.random.randn(y, 1) for y in sizes[1:]]
-for j in range(20):
+for j in range(10):
     my_data = [random.randint(0, 1) for i in range(10)]
-    class_label = [0, 1, 0]
+    if j < 5:
+        class_label = [0, 1, 0]
+    else: class_label = [0, 0, 1]
     training_data.append((my_data, class_label))
 # print(f'training_data = {training_data}')
 
@@ -703,7 +644,7 @@ if __name__ == '__main__':
     # print(training_data2)
     # etwork([16384, 1024, 10])
     net = Network([4096, 128, 10])
-    # net = Network([10, 8, 5, 3])
+    # net = Network([10, 6, 4, 3])
     # print(f'net.weights = {net.weights}')
 
 
@@ -712,7 +653,9 @@ if __name__ == '__main__':
     # print(f'net.weights = {net.weights}\n')
     # print(f'net.biases = {net.biases}')
 
-    # net.SGD(training_data2, 30, 0.01)
+    net.SGD(training_data2, 15, 0.01)
+    # net.save_params('model_params_weight2.pkl', 'model_params_biases2.pkl')
+    # net.load_params('model_params_weight.pkl', 'model_params_biases.pkl')
     # net.save_model_csv(weights=net.weights, biases=net.biases, sizes=net.sizes, filename='model_params2.csv')
     # with open('model_params_weight.pkl', 'wb') as f:
     #     pickle.dump(net.weights, f)
@@ -720,11 +663,11 @@ if __name__ == '__main__':
     # with open('model_params_biases.pkl', 'wb') as f:
     #     pickle.dump(net.biases, f)
 
-    with open('model_params_weight.pkl', 'rb') as f:
-        net.weights = pickle.load(f)
-
-    with open('model_params_biases.pkl', 'rb') as f:
-        net.biases = pickle.load(f)
+    # with open('model_params_weight.pkl', 'rb') as f:
+    #     net.weights = pickle.load(f)
+    #
+    # with open('model_params_biases.pkl', 'rb') as f:
+    #     net.biases = pickle.load(f)
 
 
     # f'self.biases = {net.biases[0]}\n'

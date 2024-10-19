@@ -47,7 +47,6 @@
 
 
 import numpy as np
-import pandas as pd
 import ctypes
 import tkinter as tk
 from tkinter import ttk
@@ -74,7 +73,7 @@ class PaintApp:
     def __init__(self, root):
         self.root = root
         self.canvas_width = 600
-        self.canvas_height = 600
+        self.canvas_height = 450
         self.canvas = tk.Canvas(self.root, width=self.canvas_width, height=self.canvas_height, bg="white", bd=1, relief=tk.SUNKEN)
         self.canvas.pack(side=tk.LEFT, expand=False)
         self.setup_navbar()
@@ -83,7 +82,6 @@ class PaintApp:
         self.prev_x = None
         self.prev_y = None
         self.net = Network([4096, 128, 10])
-
         self.net.load_params('model_params_weight.pkl', 'model_params_biases.pkl')
 
 
@@ -110,170 +108,97 @@ class PaintApp:
         self.selected_tool = "pen"
         self.colors = ["black", "red", "green", "blue", "yellow", "orange", "purple", "white"]
         self.selected_color = self.colors[0]
-        self.brush_sizes = [6, 8, 10, 12, 14, 16]
+        self.brush_sizes = [2, 4, 6, 8]
         self.selected_size = self.brush_sizes[1]
         self.pen_types = ["line", "round", "square", "arrow", "diamond"]
-        self.selected_pen_type = self.pen_types[3]
-        #
-
-
-        # Ввод количества слоёв
-        self.nero_frame = ttk.LabelFrame(self.root, text="NERO")
-        self.nero_frame.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
-
-        self.label_layers = ttk.Label(self.nero_frame,
-                                      text="Количество слоёв:")
-        self.label_layers.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.entry_layers = ttk.Entry(self.nero_frame, width=5)
-        self.entry_layers.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.button_set_layers = ttk.Button(self.nero_frame,
-                                            text="Установить слои",
-                                            command=self.set_layers)
-        self.button_set_layers.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.layer_entries = []
-        self.layer_labels = []
-
-        # ML frame
-        self.ml_frame = ttk.LabelFrame(self.root, text="ML")
-        self.ml_frame.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
-
-        self.era_box_label = ttk.Label(self.ml_frame, text="Количество эпох:")
-        self.era_box_label.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.era_box = ttk.Spinbox(self.ml_frame, from_=2, to=120)
-        self.era_box.set(5)
-        self.era_box.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.learning_speed_label = ttk.Label(self.ml_frame, text="Скорость обучение:")
-        self.learning_speed_label.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.learning_speed_box = ttk.Spinbox(self.ml_frame, from_=0.001, to=1)
-        self.learning_speed_box.set(0.01)
-        self.learning_speed_box.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.start_ml = ttk.Button(self.ml_frame, text="Начать обучение", command=self.start_ml)
-        self.start_ml.pack(side=tk.BOTTOM, padx=5, pady=5)
+        self.selected_pen_type = self.pen_types[1]
 
         self.tool_frame = ttk.LabelFrame(self.root, text="Tools")
-        # self.tool_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.Y)
-        self.tool_frame.pack(pady=10, fill=tk.X)
+        self.tool_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.Y)
 
-        #
 
-        self.brush_size_label = ttk.Label(self.tool_frame, text="Размер пера:")
-        self.brush_size_label.grid(row=0, column=0, padx=10, pady=10, sticky=tk.W)
+        self.brush_size_label = ttk.Label(self.tool_frame, text="Brush Size:")
+        self.brush_size_label.pack(side=tk.TOP, padx=5, pady=5)
 
         self.brush_size_combobox = ttk.Combobox(self.tool_frame, values=self.brush_sizes, state="readonly")
         self.brush_size_combobox.current(1)
-        self.brush_size_combobox.grid(row=0, column=1, sticky=tk.W + tk.E)
-        # self.brush_size_combobox.pack(side=tk.TOP, padx=5, pady=5)
+        self.brush_size_combobox.pack(side=tk.TOP, padx=5, pady=5)
         self.brush_size_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_size(int(self.brush_size_combobox.get())))
-        #
-        # self.color_label = ttk.Label(self.tool_frame, text="Color:")
-        # self.color_label.pack(side=tk.TOP, padx=5, pady=5)
-        #
-        # self.color_combobox = ttk.Combobox(self.tool_frame, values=self.colors, state="readonly")
-        # self.color_combobox.current(0)
-        # self.color_combobox.pack(side=tk.TOP, padx=5, pady=5)
-        # self.color_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_color(self.color_combobox.get()))
-        #
-        self.pen_type_label = ttk.Label(self.tool_frame, text="Тип пера:")
-        self.pen_type_label.grid(row=0, column=2, sticky=tk.W)
-        # self.pen_type_label.pack(side=tk.TOP, padx=5, pady=5)
-        #
+
+        self.color_label = ttk.Label(self.tool_frame, text="Color:")
+        self.color_label.pack(side=tk.TOP, padx=5, pady=5)
+
+        self.color_combobox = ttk.Combobox(self.tool_frame, values=self.colors, state="readonly")
+        self.color_combobox.current(0)
+        self.color_combobox.pack(side=tk.TOP, padx=5, pady=5)
+        self.color_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_color(self.color_combobox.get()))
+
+        self.pen_type_label = ttk.Label(self.tool_frame, text="Pen Type:")
+        self.pen_type_label.pack(side=tk.TOP, padx=5, pady=5)
+
         self.pen_type_combobox = ttk.Combobox(self.tool_frame, values=self.pen_types, state="readonly")
         self.pen_type_combobox.current(1)
-        self.pen_type_combobox.grid(row=0, column=3, sticky=tk.W + tk.E)
-        # self.pen_type_combobox.pack(side=tk.TOP, padx=5, pady=5)
+        self.pen_type_combobox.pack(side=tk.TOP, padx=5, pady=5)
         self.pen_type_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_pen_type(self.pen_type_combobox.get()))
-        #
-        self.clear_button = ttk.Button(self.tool_frame, text="Очистить", command=self.clear_canvas)
-        self.clear_button.grid(row=1, column=0, sticky=tk.W + tk.E)
-        # self.clear_button.pack(side=tk.TOP, padx=5, pady=5)
-        #
-        self.recognize_button = ttk.Button(self.tool_frame, text="Распознать", command=self.recognize_img)
-        self.recognize_button.grid(row=1, column=1, sticky=tk.W + tk.E)
-        # self.recognize_button.pack(side=tk.TOP, padx=5, pady=5)
-        #
-        self.save_button = ttk.Button(self.tool_frame, text="Сохранить", command=self.save_img)
-        self.save_button.grid(row=1, column=2, sticky=tk.W + tk.E)
-        # self.save_button.pack(side=tk.TOP, padx=5, pady=5)
-        #
-        self.center_button = ttk.Button(self.tool_frame, text="Центрировать", command=self.center_photo)
-        self.center_button.grid(row=1, column=3, sticky=tk.W + tk.E)
-        self.tool_frame.grid_columnconfigure(0, weight=1)
-        self.tool_frame.grid_columnconfigure(1, weight=1)
-        self.tool_frame.grid_columnconfigure(2, weight=1)
-        self.tool_frame.grid_columnconfigure(3, weight=1)
 
-        # self.center_button.pack(side=tk.TOP, padx=5, pady=5)
+        self.clear_button = ttk.Button(self.tool_frame, text="Clear Canvas", command=self.clear_canvas)
+        self.clear_button.pack(side=tk.TOP, padx=5, pady=5)
+
+        self.recognize_button = ttk.Button(self.tool_frame, text="Recognize img", command=self.recognize_img)
+        self.recognize_button.pack(side=tk.TOP, padx=5, pady=5)
+
+        self.save_button = ttk.Button(self.tool_frame, text="Save img", command=self.save_img)
+        self.save_button.pack(side=tk.TOP, padx=5, pady=5)
+
+        self.center_button = ttk.Button(self.tool_frame, text="Center img", command=self.center_photo)
+        self.center_button.pack(side=tk.TOP, padx=5, pady=5)
 
         # Metrics frame
-
         self.metrics_frame = ttk.LabelFrame(self.root, text="Metrics")
-        self.metrics_frame.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
+        self.metrics_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.Y)
 
-        self.accuracy = ttk.Label(self.metrics_frame, text="Accuracy:None", font=("Arial", 12))
+        self.accuracy = ttk.Label(self.metrics_frame, text="Accuracy:None")
 
-        self.accuracy.pack(side=tk.LEFT, padx=5, pady=5)
+        self.accuracy.pack(side=tk.TOP, padx=5, pady=5)
 
-        self.precision = ttk.Label(self.metrics_frame, text="Precision:None", font=("Arial", 12))
-        self.precision.pack(side=tk.LEFT, padx=5, pady=5)
+        self.precision = ttk.Label(self.metrics_frame, text="Precision:None")
+        self.precision.pack(side=tk.TOP, padx=5, pady=5)
 
-        self.recall = ttk.Label(self.metrics_frame, text="Recall:None", font=("Arial", 12))
-        self.recall.pack(side=tk.LEFT, padx=5, pady=5)
+        self.recall = ttk.Label(self.metrics_frame, text="Recall:None")
+        self.recall.pack(side=tk.TOP, padx=5, pady=5)
 
-        self.loss = ttk.Label(self.metrics_frame, text="Loss:None", font=("Arial", 12))
-        self.loss.pack(side=tk.LEFT, padx=5, pady=5)
+        self.loss = ttk.Label(self.metrics_frame, text="Loss:Non")
+        self.loss.pack(side=tk.TOP, padx=5, pady=5)
 
         # self.predict = tk.StringVar()
 
         self.result_text = tk.StringVar()
-        self.result_text.set("Предсказание: X")  # Заменить на фактический результат
+        self.result_text.set(
+            "Предсказание: X")  # Заменить на фактический результат
         self.result_label = tk.Label(self.metrics_frame, textvariable=self.result_text,
-                                     font=("Arial", 12))
+                                     font=("Arial", 16))
         self.result_label.pack(side=tk.TOP, padx=5, pady=5)
 
-        # Info frame
-        self.info_frame = ttk.LabelFrame(self.root, text="Info")
-        self.info_frame.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
+        # ML frame
+        self.ml_frame = ttk.LabelFrame(self.root, text="ML")
+        self.ml_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.Y)
 
-        self.epoch = ttk.Label(self.info_frame, text="Эпоха номер 0")
+        self.era_box_label = ttk.Label(self.ml_frame, text="Number of epochs:")
+        self.era_box_label.pack(side=tk.TOP, padx=5, pady=5)
 
-        self.epoch.pack(side=tk.LEFT, padx=5, pady=5)
+        self.era_box = ttk.Spinbox(self.ml_frame, from_=10, to=120)
+        self.era_box.set(100)
+        self.era_box.pack(side=tk.TOP, padx=5, pady=5)
 
+        self.learning_speed_label = ttk.Label(self.ml_frame, text="Learning speed:")
+        self.learning_speed_label.pack(side=tk.TOP, padx=5, pady=5)
 
+        self.learning_speed_box = ttk.Spinbox(self.ml_frame, from_=10, to=120)
+        self.learning_speed_box.set(100)
+        self.learning_speed_box.pack(side=tk.TOP, padx=5, pady=5)
 
-
-    def set_layers(self):
-        # Удаление старых полей ввода, если они есть
-        for entry in self.layer_entries:
-            entry.pack_forget()
-        for label in self.layer_labels:
-            label.pack_forget()
-
-        self.layer_entries.clear()
-        self.layer_labels.clear()
-
-        try:
-            num_layers = int(self.entry_layers.get())
-            for i in range(num_layers):
-                layer_label = ttk.Label(self.nero_frame,
-                                       text=f"слой: {i + 1}:")
-                layer_label.pack(side=tk.LEFT, padx=5, pady=5)
-                self.layer_labels.append(layer_label)
-
-                layer_entry = ttk.Entry(self.nero_frame, width=5)
-                layer_entry.pack(side=tk.LEFT, padx=5, pady=5)
-
-                self.layer_entries.append(layer_entry)
-        except ValueError:
-            print('errr')
-            # tk.messagebox.showerror("Ошибка",
-            #                         "Введите корректное число слоёв.")
+        self.start_ml = ttk.Button(self.ml_frame, text="Start ml", command=self.save_img)
+        self.start_ml.pack(side=tk.TOP, padx=5, pady=5)
 
     def setup_events(self):
         self.canvas.bind("<B1-Motion>", self.draw)
@@ -290,7 +215,7 @@ class PaintApp:
 
     def recognize_img(self):
         # self.save_img()
-        self.center_photo()
+        ctypes.windll.shcore.SetProcessDpiAwareness(True)
         x = root.winfo_rootx()
         y = root.winfo_rooty()
         x1 = x + self.canvas.winfo_width() - 5
@@ -328,73 +253,35 @@ class PaintApp:
         # arr = self._convert_img_to_pixels_arr('сurr_pic.jpg')
         z = self.net.predict(arr)
         y_pred = np.argmax(z)
-        print(np.max(z))
         print(y_pred)
-        browser = self.net.res_interpreter(y_pred)
-        print(browser)
-        # self.result_text.config(text=str(browser))
-        self.result_text.set(f"Предсказание: {str(browser)}")
+        print(self.net.res_interpreter(y_pred))
+        self.result_label.config(text=str(y_pred))
         # return y_pred
 
     # def save_canvas_as_jpg(self, canvas, filename):
-
-    def start_ml(self):
-        num_neurons = []
-        num_neurons.append(4096)
-        num_layers = self.entry_layers.get()
-        for entry in self.layer_entries:
-            num_neurons.append(int(entry.get()))
-
-        num_neurons.append(10)
-        print(num_neurons)
-        self.net = Network(num_neurons)
-        learing_rate = float(self.learning_speed_box.get())
-        num_epochs = int(self.era_box.get())
-        print(f'learing_rate = {learing_rate}\n'
-              f'num_epochs = {num_epochs}')
-        df = pd.read_csv(
-            'D:/MLUniversity/work1/Dataset/BrowserLogos_64/final_output_64.csv')
-        test_size = int(0.2 * len(df))
-
-        # Получаем случайные индексы для тестовой выборки
-        test_indices = df.sample(n=test_size).index
-
-        # Разделяем выборки
-        train_df = df.drop(test_indices)
-        test_df = df.loc[test_indices]
-        train_df = train_df.sample(frac=1)
-        train_data = self.net.create_training_data(train_df)
-        test_data = self.net.create_testing_data(test_df)
-        self.net.SGD(train_data, num_epochs, learing_rate)
-        acc = self.net.calc_accuracy(data=test_data)
-        self.accuracy.config(text=f'Accuracy = {acc:.4f}')
-        print(f'Accuracy = {acc}')
-        print(f'Матрица ощшибок = \n{self.net.confusion_matrix}')
-        recall = self.net.calculate_recall()
-        self.recall.config(text=f'Recall = {recall:.4f}')
-        precision = self.net.calculate_precision()
-        self.precision.config(text=f'Precision = {precision:.4f}')
-        print(f'RECALL = \n{recall}')
-        print(f'PRECISION = \n{precision}')
-        self.loss.config(text=f'Loss = {self.net.multiclass_cross_entropy_loss:.4f}')
+    #     # Получаем размеры Canvas
+    #     canvas.update()
+    #     x = canvas.winfo_width()
+    #     y = canvas.winfo_height()
+    #
+    #     # Создаем изображение из Canvas
+    #     canvas_postscript = canvas.postscript(colormode='color')
+    #     img = Image.open(io.BytesIO(canvas_postscript.encode('utf-8')))
+    #
+    #     # Сохраняем изображение в JPG формате
+    #     img.convert("RGB").save(filename, "JPEG")
 
 
-        # for i in range(num_layers):
-        #
-        #     pass
+
 
 
     def save_img(self):
         self.take_snapshot()
 
     def save_weight(self):
-        self.net.save_params('model_params_weightGUI.pkl',
-                             'model_params_biasesGUI.pkl')
         return
 
     def load_weight(self):
-        self.net.load_params('model_params_weightGUI.pkl',
-                             'model_params_biasesGUI.pkl')
         return
 
     def load_img(self):
@@ -460,7 +347,7 @@ class PaintApp:
         y = root.winfo_rooty()+self.canvas.winfo_y() + 3
         x1 = x + self.canvas.winfo_height() - 6
         y1 = y + self.canvas.winfo_width() - 6
-        ImageGrab.grab().crop((x, y, x1, y1)).resize((600, 600)).save('temp.jpg', 'JPEG')
+        ImageGrab.grab().crop((x, y, x1, y1)).resize((320, 320)).save('temp.jpg', 'JPEG')
 
     def center_photo(self):
         self.take_snapshot()
@@ -495,10 +382,10 @@ class PaintApp:
         print(object_w, object_h)
 
         # Calc coord for new img
-        img_center = int(600 / 2)
+        img_center = int(320 / 2)
         new_upper_edge = Pixel(img_center - int(object_w / 2), img_center - int(object_h / 2))
 
-        new_img = Image.new('RGB', (600, 600), color=(255, 255, 255))
+        new_img = Image.new('RGB', (320, 320), color=(255, 255, 255))
         y_counter = 0
         for y in range(upper_edge.y, down_edge.y+1):
             x_counter = 0
@@ -547,7 +434,7 @@ class PaintApp:
         #         sum = r+g+b
         #         list_of_pixels.append(0) if sum == 765 else list_of_pixels.append(1)
 
-        # print(f"Пиксели = {list_of_pixels}")
+        print(f"Пиксели = {list_of_pixels}")
 
 
     def _convert_img_to_pixels_arr(self, img_path):

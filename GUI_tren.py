@@ -53,11 +53,6 @@ class PaintApp:
         # self.file_menu.add_separator()
         self.navbar.add_command(label="Exit", command=self.root.quit)
 
-        # Edit menu
-        # self.edit_menu = tk.Menu(self.navbar, tearoff=False)
-        # self.navbar.add_cascade(label="Edit", menu=self.edit_menu)
-        # self.edit_menu.add_command(label="Undo", command=self.undo)
-
     def setup_tools(self):
         self.selected_tool = "pen"
         self.colors = ["black", "red", "green", "blue", "yellow", "orange", "purple", "white"]
@@ -66,15 +61,13 @@ class PaintApp:
         self.selected_size = self.brush_sizes[1]
         self.pen_types = ["line", "round", "square", "arrow", "diamond"]
         self.selected_pen_type = self.pen_types[3]
-        #
-
 
         # Ввод количества слоёв
         self.nero_frame = ttk.LabelFrame(self.root, text="NERO")
         self.nero_frame.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.label_layers = ttk.Label(self.nero_frame,
-                                      text="Количество слоёв:")
+                                      text="Количество скрытых слоёв:")
         self.label_layers.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_layers = ttk.Entry(self.nero_frame, width=5)
@@ -113,8 +106,6 @@ class PaintApp:
         # self.tool_frame.pack(side=tk.RIGHT, padx=5, pady=5, fill=tk.Y)
         self.tool_frame.pack(pady=10, fill=tk.X)
 
-        #
-
         self.brush_size_label = ttk.Label(self.tool_frame, text="Размер пера:")
         self.brush_size_label.grid(row=0, column=0, padx=10, pady=10, sticky=tk.W)
 
@@ -123,23 +114,13 @@ class PaintApp:
         self.brush_size_combobox.grid(row=0, column=1, sticky=tk.W + tk.E)
         # self.brush_size_combobox.pack(side=tk.TOP, padx=5, pady=5)
         self.brush_size_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_size(int(self.brush_size_combobox.get())))
-        #
-        # self.color_label = ttk.Label(self.tool_frame, text="Color:")
-        # self.color_label.pack(side=tk.TOP, padx=5, pady=5)
-        #
-        # self.color_combobox = ttk.Combobox(self.tool_frame, values=self.colors, state="readonly")
-        # self.color_combobox.current(0)
-        # self.color_combobox.pack(side=tk.TOP, padx=5, pady=5)
-        # self.color_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_color(self.color_combobox.get()))
-        #
+
         self.pen_type_label = ttk.Label(self.tool_frame, text="Тип пера:")
         self.pen_type_label.grid(row=0, column=2, sticky=tk.W)
-        # self.pen_type_label.pack(side=tk.TOP, padx=5, pady=5)
-        #
+
         self.pen_type_combobox = ttk.Combobox(self.tool_frame, values=self.pen_types, state="readonly")
         self.pen_type_combobox.current(1)
         self.pen_type_combobox.grid(row=0, column=3, sticky=tk.W + tk.E)
-        # self.pen_type_combobox.pack(side=tk.TOP, padx=5, pady=5)
         self.pen_type_combobox.bind("<<ComboboxSelected>>", lambda event: self.select_pen_type(self.pen_type_combobox.get()))
         #
         self.clear_button = ttk.Button(self.tool_frame, text="Очистить", command=self.clear_canvas)
@@ -148,20 +129,16 @@ class PaintApp:
         #
         self.recognize_button = ttk.Button(self.tool_frame, text="Распознать", command=self.recognize_img)
         self.recognize_button.grid(row=1, column=1, sticky=tk.W + tk.E)
-        # self.recognize_button.pack(side=tk.TOP, padx=5, pady=5)
-        #
+
         self.save_button = ttk.Button(self.tool_frame, text="Сохранить", command=self.save_img)
         self.save_button.grid(row=1, column=2, sticky=tk.W + tk.E)
-        # self.save_button.pack(side=tk.TOP, padx=5, pady=5)
-        #
+
         self.center_button = ttk.Button(self.tool_frame, text="Центрировать", command=self.center_photo)
         self.center_button.grid(row=1, column=3, sticky=tk.W + tk.E)
         self.tool_frame.grid_columnconfigure(0, weight=1)
         self.tool_frame.grid_columnconfigure(1, weight=1)
         self.tool_frame.grid_columnconfigure(2, weight=1)
         self.tool_frame.grid_columnconfigure(3, weight=1)
-
-        # self.center_button.pack(side=tk.TOP, padx=5, pady=5)
 
         # Metrics frame
 
@@ -180,9 +157,7 @@ class PaintApp:
 
         self.loss = ttk.Label(self.metrics_frame, text="Loss:None", font=("Arial", 12))
         self.loss.pack(side=tk.LEFT, padx=5, pady=5)
-
-        # self.predict = tk.StringVar()
-
+#
         self.result_text = tk.StringVar()
         self.result_text.set("Предсказание: X")  # Заменить на фактический результат
         self.result_label = tk.Label(self.metrics_frame, textvariable=self.result_text,
@@ -196,8 +171,6 @@ class PaintApp:
         self.epoch = ttk.Label(self.info_frame, text="Эпоха номер 0")
 
         self.epoch.pack(side=tk.LEFT, padx=5, pady=5)
-
-
 
 
     def set_layers(self):
@@ -248,14 +221,6 @@ class PaintApp:
         x1 = x + self.canvas.winfo_width() - 5
         y1 = y + self.canvas.winfo_height() - 5
 
-        print(f'x = {x}, y = {y}\n'
-              f'x1 = {x1}, y1 = {y1}\n')
-
-        print(f'self.canvas.winfo_x() = {self.canvas.winfo_x()}, self.canvas.winfo_y() = {self.canvas.winfo_y()}\n')
-        print(
-            f'root.winfo_rootx() = {root.winfo_rootx()}, root.winfo_rooty() = {root.winfo_rooty()}\n')
-        print(
-            f'canvas.winfo_height() = {self.canvas.winfo_height()}, self.canvas.winfo_width() = {self.canvas.winfo_width()}\n')
         # Захватываем изображение
         image = ImageGrab.grab().crop((x, y, x1, y1))
 
@@ -265,17 +230,12 @@ class PaintApp:
 
         # Изменяем размер и сохраняем
 
-
         image = image.resize((512, 512), Image.LANCZOS)  # Увеличьте размер
         image = image.resize((64, 64), Image.LANCZOS)
-
-
 
         # Сохранение изображения в формате JPEG
         image.save('curr_pic.jpg', 'JPEG', quality=95)
 
-        # ImageGrab.grab().crop((x, y, x1, y1)).resize((64, 64)).save(
-        #     'сurr_pic.jpg', 'JPEG')
         arr = self._convert_pixels_to_arr(image)
         # arr = self._convert_img_to_pixels_arr('сurr_pic.jpg')
         z = self.net.predict(arr)
@@ -328,8 +288,8 @@ class PaintApp:
         self.precision.config(text=f'Precision = {precision:.4f}')
         print(f'RECALL = \n{recall}')
         print(f'PRECISION = \n{precision}')
-        self.loss.config(text=f'Loss = {self.net.multiclass_cross_entropy_loss:.4f}')
-
+        loss = self.net.multiclass_cross_entropy_loss
+        self.loss.config(text=f'Loss = {loss:.5f}')
 
     def save_img(self):
         self.take_snapshot()
@@ -351,7 +311,6 @@ class PaintApp:
             imageCanvas = ImageTk.PhotoImage(file=img_path)
             self.clear_canvas()
             item = self.canvas.create_image((3, 3), image=imageCanvas, anchor='nw')
-            # self.canvas.itemconfigure(item, image=imageCanvas)
 
     def draw(self, event):
         if self.selected_tool == "pen":

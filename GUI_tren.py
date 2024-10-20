@@ -1,51 +1,3 @@
-# import tkinter as tk
-# from PIL import ImageGrab
-#
-# class RecognitionApp:
-#     def __init__(self, root):
-#         self.root = root
-#         self.canvas_width = 400
-#         self.canvas_height = 400
-#         self.canvas = tk.Canvas(self.root, width=self.canvas_width, height=self.canvas_height, bg="white", bd=1, relief=tk.SUNKEN)
-#         self.canvas.pack(side=tk.LEFT, expand=False)
-#         # self.setup_navbar()
-#         # self.setup_tools()
-#         # self.setup_events()
-#         self.prev_x = None
-#         self.prev_y = None
-#
-#     def setup_navbar(self):
-#         self.navbar = tk.Menu(self.root)
-#         self.root.config(menu=self.navbar)
-#
-#         # File menu
-#         self.file_menu = tk.Menu(self.navbar, tearoff=False)
-#         # self.navbar.add_cascade(label="File", menu=self.file_menu)
-#         # self.navbar.add_command(label="Save Snapshot", command=self.take_snapshot)
-#         # self.navbar.add_command(label="Save weight", command=self.save_weight)
-#         # self.navbar.add_command(label="Load weight", command=self.load_weight)
-#         # self.navbar.add_command(label="Load image", command=self.load_img)
-#         # self.file_menu.add_separator()
-#         self.navbar.add_command(label="Exit", command=self.root.quit)
-#
-#         # Edit menu
-#         # self.edit_menu = tk.Menu(self.navbar, tearoff=False)
-#         # self.navbar.add_cascade(label="Edit", menu=self.edit_menu)
-#         # self.edit_menu.add_command(label="Undo", command=self.undo)
-#
-# if __name__ == '__main__':
-#     root = tk.Tk()
-#     root.title('Img recognition app')
-#     root.resizable(False, False)
-#     app = RecognitionApp(root)
-#     root.mainloop()
-
-
-
-
-
-
-
 import numpy as np
 import pandas as pd
 import ctypes
@@ -379,11 +331,6 @@ class PaintApp:
         self.loss.config(text=f'Loss = {self.net.multiclass_cross_entropy_loss:.4f}')
 
 
-        # for i in range(num_layers):
-        #
-        #     pass
-
-
     def save_img(self):
         self.take_snapshot()
 
@@ -533,23 +480,6 @@ class PaintApp:
         return binary_array
 
 
-
-
-
-        #
-        # pixels = image.load()
-        # list_of_pixels = []
-        # # Проходим по всем пикселям изображения
-        # for x in range(image.width):
-        #     for y in range(image.height):
-        #         print(pixels[x, y])
-        #         r, g, b = pixels[x, y]  # Получаем цвет пикселя в формате RGB
-        #         sum = r+g+b
-        #         list_of_pixels.append(0) if sum == 765 else list_of_pixels.append(1)
-
-        # print(f"Пиксели = {list_of_pixels}")
-
-
     def _convert_img_to_pixels_arr(self, img_path):
         with Image.open(img_path) as img:
 
@@ -566,8 +496,6 @@ class PaintApp:
 
         print(f"Пиксели = {sum(binary_array)}")
         return binary_array
-
-
 
 
 if __name__ == "__main__":

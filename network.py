@@ -1,9 +1,6 @@
 import random
 import sys
 import pickle
-from cgi import print_form
-
-# Сторонние библиотеки
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,18 +15,11 @@ class Network(object):
         """ Массив sizes содержит количество нейронов в соответствующих слоях. Так что, если мы хотим создать объект Network с двумя нейронами в первом слое, тремя нейронами во втором слое, и одним нейроном в третьем, то мы запишем это, как [2, 3, 1]. Смещения и веса сети инициализируются случайным образом с использованием распределения Гаусса с математическим ожиданием 0 и среднеквадратичным отклонением 1. Предполагается, что первый слой нейронов будет входным, и поэтому у его нейронов нет смещений, поскольку они используются только при подсчёте выходных данных. """
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        self.weights = [np.random.randn(y, x)
+        self.biases = [np.random.randn(1, y) for y in sizes[1:]]
+        self.weights = [np.random.randn(x, y, )
                         for x, y in zip(sizes[:-1], sizes[1:])]
         self.t = [0]*sizes[-1]
         self.res_entropy = 100
-
-
-        ######## new
-        self.biases = [np.random.randn(1, y) for y in sizes[1:]]
-        self.weights = [np.random.randn(x, y,)
-                        for x, y in zip(sizes[:-1], sizes[1:])]
-
 
         self.confusion_matrix = np.zeros((10, 10))
         self.y_true = []
@@ -51,27 +41,19 @@ class Network(object):
         """Возвращает выходные данные сети, когда ``a`` - входные данные."""
         for b, w in zip(self.biases, self.weights):
             a = ReLu(a @ w + b)
+            a = sigmoid(a @ w + b)
             # a = sigmoid(np.dot(w, a)+b)
         return a
 
     def SGD(self, training_data, epochs, eta, test_data=None):
-        """Обучаем сеть при помощи мини-пакетов и стохастического градиентного спуска. training_data – список кортежей "(x, y)", обозначающих обучающие входные данные и желаемые выходные. Остальные обязательные параметры говорят сами за себя. Если test_data задан, тогда сеть будет оцениваться относительно проверочных данных после каждой эпохи, и будет выводиться текущий прогресс. Это полезно для отслеживания прогресса, однако существенно замедляет работу. """
-
+        """Обучаем сеть при помощи мини-пакетов и стохастического градиентного спуска. training_data – список кортежей "(x, y)", обозначающих обучающие входные данные и желаемые выходные. Остальные обязательные параметры говорят сами за себя.  """
 
         if test_data: n_test = len(test_data)
         n = len(training_data)
-        # print(f'n = {n}\n'
-              # f'mini_batch_size = {mini_batch_size}\n')
-        recall_arr = []
-        accuracy_arr = []
-        precision_arr = []
-        loss_arr = []
+        recall_arr, accuracy_arr, precision_arr, loss_arr, f1_arr = [], [], [], [], []
+
         for j in range(epochs):
-
-            # print(f'training_data = \n {training_data}')
-
             random.shuffle(training_data)
-            # print(f'training_data = \n {training_data}')
             for i in range(n):
 
 
@@ -109,6 +91,9 @@ class Network(object):
             loss = self.multiclass_cross_entropy_loss()
             loss_arr.append(loss)
 
+            f1_score = self.calculate_f1_score(precision, recall)
+            f1_arr.append(f1_score)
+
             self.y_true = []
             self.y_pred = []
 
@@ -122,10 +107,12 @@ class Network(object):
                 print(f"Recall = {recall_arr}")
                 print(f"Precision = {precision_arr}")
                 print(f"Loss = {loss_arr}")
+                print(f"F1 = {f1_arr}")
         self.create_graphics(accuracy_arr, 'Accuracy')
         self.create_graphics(recall_arr, 'Recall')
         self.create_graphics(recall_arr, 'Precision')
         self.create_graphics(loss_arr, 'Loss')
+        self.create_graphics(f1_arr, 'Loss')
 
 
     def backprop(self, x, y):
@@ -152,8 +139,10 @@ class Network(object):
             zs.append(z)
             # print(f'zs = {zs}\n')
             # activation = sigmoid(z)
-            relu = ReLu(z)
-            activation = relu
+            # relu = ReLu(z)
+            sig = sigmoid(z)
+            # activation = relu
+            activation = sig
             # print(f'RELU = {relu}\n')
             # print(f'after relu(z) new activation = {activation}\n')
             activations.append(activation)
@@ -208,7 +197,10 @@ class Network(object):
             de_dW = activations[layer_index].T @ dE_dt
             de_db = dE_dt
             de_dactivation = dE_dt @ self.weights[layer_index].T
-            dE_dt = np.array(de_dactivation) * np.array(ReLu_deriv(zs[layer_index-1]))
+            # dE_dt = np.array(de_dactivation) * np.array(ReLu_deriv(zs[layer_index-1]))
+            dE_dt = np.array(de_dactivation) * np.array(
+                sigmoid_deriv(zs[layer_index - 1]))
+
             nabla_b[layer_index] = de_db
             nabla_w[layer_index] = de_dW
         de_dW = np.matrix(x).T @ dE_dt
@@ -334,7 +326,8 @@ class Network(object):
         for num_layer in range(0, num_prop_layers):
             t = h @ self.weights[num_layer] + self.biases[num_layer]
             if num_layer != num_prop_layers - 1:
-                h = ReLu(t)
+                # h = ReLu(t)
+                h = sigmoid(t)
             else:
                 h = self.softmax(t)
         return h
@@ -509,6 +502,11 @@ class Network(object):
         print(np.sum(FP))
         return np.sum(diagonal) / (np.sum(FP) + np.sum(diagonal))
 
+
+    def calculate_f1_score(self, precision, recall):
+        return 2 * (precision * recall) / (precision + recall)
+
+
     def create_graphics(self, arr, name):
         # Создание осей X (например, количество эпох)
         epochs = list(range(1, len(arr) + 1))
@@ -542,12 +540,19 @@ def ReLu(z):
 def ReLu_deriv(z):
     return (z >= 0).astype(float)
 
-def sigmoid_prime(z):
-    """Производная сигмоиды."""
+def deriv_sigmoid(x):
+  # Производная сигмоиды: f'(x) = f(x) * (1 - f(x))
+  fx = sigmoid(x)
+
+  return fx * (1 - fx)
+
+def sigmoid_deriv(z):
+    """Производная сигмоиды. f'(x) = f(x) * (1 - f(x))"""
+
     sig = sigmoid(z)
-    print(f'sig = {sig}\n')
-    print(f'type(sig) = {type(sig)}\n')
-    print(f'(1-sig) = {(1-sig)}')
+    # print(f'sig = {sig}\n')
+    # print(f'type(sig) = {type(sig)}\n')
+    # print(f'(1-sig) = {(1-sig)}')
     return sig @ (1-sig).transpose()
 
 
@@ -644,7 +649,7 @@ if __name__ == '__main__':
     # print(training_data2)
     # etwork([16384, 1024, 10])
     net = Network([4096, 128, 10])
-    # net = Network([10, 6, 4, 3])
+    # net = Network([10, 6, 3])
     # print(f'net.weights = {net.weights}')
 
 
